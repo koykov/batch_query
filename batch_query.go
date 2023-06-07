@@ -44,7 +44,16 @@ func (q *BatchQuery) Find(key any) (any, error) {
 }
 
 func (q *BatchQuery) find(key any, c chan tuple) {
-
+	q.mux.Lock()
+	defer q.mux.Unlock()
+	q.buf = append(q.buf, pair{key: key, c: c})
+	if uint64(len(q.buf)) == q.chunkSize {
+		cpy := append([]pair(nil), q.buf...)
+		_ = cpy
+		// ...
+		q.buf = q.buf[:0]
+		return
+	}
 }
 
 func (q *BatchQuery) Close() error {
@@ -55,3 +64,5 @@ type pair struct {
 	key any
 	c   chan tuple
 }
+
+var _ = NewBatchQuery
