@@ -11,6 +11,7 @@ const (
 )
 
 type BatchQuery struct {
+	once        sync.Once
 	chunkSize   uint64
 	collectTime time.Duration
 
@@ -34,6 +35,14 @@ func NewBatchQuery(chunkSize uint64, collectTime time.Duration) (*BatchQuery, er
 }
 
 func (q *BatchQuery) Find(key any) (any, error) {
+	q.once.Do(func() {
+		if q.chunkSize == 0 {
+			q.chunkSize = defaultChunkSize
+		}
+		if q.collectTime == 0 {
+			q.collectTime = defaultCollectTime
+		}
+	})
 	c := make(chan tuple, 1)
 	q.find(key, c)
 	rec, ok := <-c
