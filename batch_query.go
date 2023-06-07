@@ -11,7 +11,9 @@ const (
 )
 
 type BatchQuery struct {
-	once        sync.Once
+	once   sync.Once
+	config *Config
+
 	chunkSize   uint64
 	collectTime time.Duration
 
@@ -20,6 +22,12 @@ type BatchQuery struct {
 	timer *time.Timer
 }
 
+func New(conf *Config) (*BatchQuery, error) {
+	q := BatchQuery{config: conf}
+	return &q, nil
+}
+
+// DEPRECATED
 func NewBatchQuery(chunkSize uint64, collectTime time.Duration) (*BatchQuery, error) {
 	if chunkSize == 0 {
 		return nil, ErrUselessChunkSize
@@ -74,4 +82,4 @@ type pair struct {
 	c   chan tuple
 }
 
-var _ = NewBatchQuery
+var _, _ = New, NewBatchQuery
