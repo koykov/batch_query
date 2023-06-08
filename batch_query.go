@@ -5,14 +5,20 @@ import (
 	"time"
 )
 
+type Status uint32
+
 const (
-	defaultChunkSize   = 64
-	defaultCollectTime = time.Second
+	StatusNil Status = iota
+	StatusFail
+	StatusActive
+	StatusThrottle
+	StatusClose
 )
 
 type BatchQuery struct {
 	once   sync.Once
 	config *Config
+	status Status
 
 	chunkSize   uint64
 	collectTime time.Duration
@@ -20,37 +26,45 @@ type BatchQuery struct {
 	mux   sync.Mutex
 	buf   []pair
 	timer *time.Timer
+
+	err error
 }
 
 func New(conf *Config) (*BatchQuery, error) {
-	q := BatchQuery{config: conf}
-	return &q, nil
+	if conf == nil {
+		return nil, ErrNoConfig
+	}
+	q := BatchQuery{config: conf.Copy()}
+	q.once.Do(q.init)
+	return &q, q.err
 }
 
-// DEPRECATED
-func NewBatchQuery(chunkSize uint64, collectTime time.Duration) (*BatchQuery, error) {
-	if chunkSize == 0 {
-		return nil, ErrUselessChunkSize
+func (q *BatchQuery) init() {
+	if q.config == nil {
+		q.err = ErrNoConfig
+		q.status = StatusFail
+		return
 	}
-	if collectTime < 0 {
-		return nil, ErrNegativeDuration
+
+	q.config = q.config.Copy()
+	c := q.config
+
+	if c.ChunkSize == 0 {
+		c.ChunkSize = defaultChunkSize
 	}
-	q := BatchQuery{
-		chunkSize:   chunkSize,
-		collectTime: collectTime,
+	if c.CollectInterval <= 0 {
+		c.CollectInterval = defaultCollectInterval
 	}
-	return &q, nil
+	if c.Workers == 0 {
+		q.err = ErrNoWorkers
+		q.status = StatusFail
+		return
+	}
+	q.status = StatusActive
 }
 
 func (q *BatchQuery) Find(key any) (any, error) {
-	q.once.Do(func() {
-		if q.chunkSize == 0 {
-			q.chunkSize = defaultChunkSize
-		}
-		if q.collectTime == 0 {
-			q.collectTime = defaultCollectTime
-		}
-	})
+	q.once.Do(q.init)
 	c := make(chan tuple, 1)
 	q.find(key, c)
 	rec, ok := <-c
@@ -82,4 +96,4 @@ type pair struct {
 	c   chan tuple
 }
 
-var _, _ = New, NewBatchQuery
+var _ = New
