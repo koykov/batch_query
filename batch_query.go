@@ -64,6 +64,11 @@ func (q *BatchQuery) init() {
 		q.status = StatusFail
 		return
 	}
+	if c.Batcher == nil {
+		q.err = ErrNoBatcher
+		q.status = StatusFail
+		return
+	}
 
 	var ctx context.Context
 	ctx, q.cancel = context.WithCancel(context.Background())
