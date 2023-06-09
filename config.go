@@ -11,6 +11,7 @@ type Config struct {
 	ChunkSize       uint64
 	CollectInterval time.Duration
 	Workers         uint
+	Batcher         Batcher
 }
 
 func (c *Config) Copy() *Config {

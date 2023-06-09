@@ -1,6 +1,7 @@
 package batch_query
 
 import (
+	"context"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -24,9 +25,11 @@ type BatchQuery struct {
 	chunkSize   uint64
 	collectTime time.Duration
 
-	mux   sync.Mutex
-	buf   []pair
-	timer *time.Timer
+	mux    sync.Mutex
+	buf    []pair
+	c      chan []pair
+	timer  *time.Timer
+	cancel context.CancelFunc
 
 	err error
 }
@@ -61,6 +64,23 @@ func (q *BatchQuery) init() {
 		q.status = StatusFail
 		return
 	}
+
+	var ctx context.Context
+	ctx, q.cancel = context.WithCancel(context.Background())
+	for i := uint(0); i < c.Workers; i++ {
+		go func(ctx context.Context) {
+			for {
+				select {
+				case p := <-q.c:
+					// todo: forward keys to batcher
+					_ = p
+				case <-ctx.Done():
+					return
+				}
+			}
+		}(ctx)
+	}
+
 	q.status = StatusActive
 }
 
