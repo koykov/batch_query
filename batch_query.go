@@ -2,6 +2,7 @@ package batch_query
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -65,6 +66,10 @@ func (q *BatchQuery) init() {
 
 func (q *BatchQuery) Find(key any) (any, error) {
 	q.once.Do(q.init)
+	if status := q.getStatus(); status == StatusClose || status == StatusFail {
+		return nil, ErrQueryClosed
+	}
+
 	c := make(chan tuple, 1)
 	q.find(key, c)
 	rec, ok := <-c
@@ -88,7 +93,18 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 }
 
 func (q *BatchQuery) Close() error {
+	if q.getStatus() == StatusClose {
+		return ErrQueryClosed
+	}
 	return nil
+}
+
+func (q *BatchQuery) setStatus(status Status) {
+	atomic.StoreUint32((*uint32)(&q.status), uint32(status))
+}
+
+func (q *BatchQuery) getStatus() Status {
+	return Status(atomic.LoadUint32((*uint32)(&q.status)))
 }
 
 type pair struct {
@@ -97,3 +113,4 @@ type pair struct {
 }
 
 var _ = New
+var _, _ = StatusNil, StatusThrottle
