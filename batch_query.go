@@ -64,11 +64,16 @@ func (q *BatchQuery) init() {
 		q.status = StatusFail
 		return
 	}
+	if c.Buffer == 0 {
+		c.Buffer = defaultBuffer
+	}
 	if c.Batcher == nil {
 		q.err = ErrNoBatcher
 		q.status = StatusFail
 		return
 	}
+
+	q.c = make(chan []pair, q.config.Buffer)
 
 	var ctx context.Context
 	ctx, q.cancel = context.WithCancel(context.Background())
@@ -93,7 +98,24 @@ func (q *BatchQuery) init() {
 						}
 						continue
 					}
-					// todo send response values to corresponding channels
+					// Send values to corresponding channels.
+					for i := 0; i < len(dst); i++ {
+						for j := 0; j < len(p); j++ {
+							if p[j].done {
+								continue
+							}
+							if p[j].done = q.config.Batcher.CheckKey(p[j].key, dst[i]); p[j].done {
+								p[j].c <- tuple{val: dst[i]}
+								continue
+							}
+						}
+					}
+					// Check rest of keys.
+					for i := 0; i < len(p); i++ {
+						if !p[i].done {
+							p[i].c <- tuple{err: ErrNotFound}
+						}
+					}
 				case <-ctx.Done():
 					return
 				}
@@ -123,9 +145,8 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 	q.buf = append(q.buf, pair{key: key, c: c})
 	if uint64(len(q.buf)) == q.chunkSize {
 		cpy := append([]pair(nil), q.buf...)
-		_ = cpy
-		// ...
 		q.buf = q.buf[:0]
+		q.c <- cpy
 		return
 	}
 }
@@ -146,8 +167,9 @@ func (q *BatchQuery) getStatus() Status {
 }
 
 type pair struct {
-	key any
-	c   chan tuple
+	key  any
+	c    chan tuple
+	done bool
 }
 
 var _ = New
