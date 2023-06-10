@@ -112,10 +112,8 @@ func (q *BatchQuery) Find(key any) (any, error) {
 
 	c := make(chan tuple, 1)
 	q.find(key, c)
-	rec, ok := <-c
-	if !ok {
-		return nil, ErrNotFound
-	}
+	rec := <-c
+	close(c)
 	return rec.val, rec.err
 }
 
