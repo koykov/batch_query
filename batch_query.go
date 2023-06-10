@@ -77,8 +77,23 @@ func (q *BatchQuery) init() {
 			for {
 				select {
 				case p := <-q.c:
-					// todo: forward keys to batcher
-					_ = p
+					// Prepare keys.
+					keys := make([]any, 0, len(p))
+					for i := 0; i < len(p); i++ {
+						keys = append(keys, p[i].key)
+					}
+					// Exec batch operation.
+					dst := make([]any, 0, len(p))
+					var err error
+					dst, err = q.config.Batcher.Batch(dst, keys, ctx)
+					if err != nil {
+						// Report about error encountered.
+						for i := 0; i < len(p); i++ {
+							p[i].c <- tuple{err: err}
+						}
+						continue
+					}
+					// todo send response values to corresponding channels
 				case <-ctx.Done():
 					return
 				}
