@@ -123,7 +123,7 @@ func (q *BatchQuery) init() {
 		}(ctx)
 	}
 
-	q.status = StatusActive
+	q.setStatus(StatusActive)
 }
 
 func (q *BatchQuery) Find(key any) (any, error) {
@@ -144,17 +144,26 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 	defer q.mux.Unlock()
 	q.buf = append(q.buf, pair{key: key, c: c})
 	if uint64(len(q.buf)) == q.chunkSize {
-		cpy := append([]pair(nil), q.buf...)
-		q.buf = q.buf[:0]
-		q.c <- cpy
+		q.flushLF()
 		return
 	}
+}
+
+func (q *BatchQuery) flushLF() {
+	cpy := append([]pair(nil), q.buf...)
+	q.buf = q.buf[:0]
+	q.c <- cpy
 }
 
 func (q *BatchQuery) Close() error {
 	if q.getStatus() == StatusClose {
 		return ErrQueryClosed
 	}
+	q.setStatus(StatusClose)
+	q.mux.Lock()
+	defer q.mux.Unlock()
+	q.flushLF()
+	close(q.c)
 	return nil
 }
 
