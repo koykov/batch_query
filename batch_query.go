@@ -164,6 +164,7 @@ func (q *BatchQuery) Close() error {
 	defer q.mux.Unlock()
 	q.flushLF()
 	close(q.c)
+	q.cancel()
 	return nil
 }
 
