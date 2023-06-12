@@ -168,8 +168,8 @@ func (q *BatchQuery) Close() error {
 	return nil
 }
 
-func (q *BatchQuery) Error() string {
-	return q.err.Error()
+func (q *BatchQuery) Error() error {
+	return q.err
 }
 
 func (q *BatchQuery) setStatus(status Status) {
