@@ -168,6 +168,10 @@ func (q *BatchQuery) Close() error {
 	return nil
 }
 
+func (q *BatchQuery) Error() string {
+	return q.err.Error()
+}
+
 func (q *BatchQuery) setStatus(status Status) {
 	atomic.StoreUint32((*uint32)(&q.status), uint32(status))
 }
