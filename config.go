@@ -14,6 +14,8 @@ type Config struct {
 	Workers         uint
 	Buffer          uint64
 	Batcher         Batcher
+
+	MetricsWriter MetricsWriter
 }
 
 func (c *Config) Copy() *Config {

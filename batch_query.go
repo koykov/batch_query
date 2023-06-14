@@ -85,6 +85,10 @@ func (q *BatchQuery) init() {
 		return
 	}
 
+	if c.MetricsWriter == nil {
+		c.MetricsWriter = DummyMetrics{}
+	}
+
 	q.c = make(chan []pair, q.config.Buffer)
 
 	var ctx context.Context
@@ -104,12 +108,14 @@ func (q *BatchQuery) init() {
 					var err error
 					dst, err = q.config.Batcher.Batch(dst, keys, ctx)
 					if err != nil {
+						q.mw().BatchFail()
 						// Report about error encountered.
 						for i := 0; i < len(p); i++ {
 							p[i].c <- tuple{err: err}
 						}
 						continue
 					}
+					q.mw().BatchOut()
 					// Send values to corresponding channels.
 					for i := 0; i < len(dst); i++ {
 						for j := 0; j < len(p); j++ {
@@ -144,10 +150,16 @@ func (q *BatchQuery) Find(key any) (any, error) {
 		return nil, ErrQueryClosed
 	}
 
+	q.mw().FindIn()
 	c := make(chan tuple, 1)
 	q.find(key, c)
 	rec := <-c
 	close(c)
+	if rec.err != nil {
+		q.mw().FindFail()
+	} else {
+		q.mw().FindOut()
+	}
 	return rec.val, rec.err
 }
 
@@ -171,6 +183,7 @@ func (q *BatchQuery) flushLF(reason flushReason) {
 	_ = reason
 	cpy := append([]pair(nil), q.buf...)
 	q.buf = q.buf[:0]
+	q.mw().BatchIn()
 	q.c <- cpy
 }
 
@@ -197,6 +210,10 @@ func (q *BatchQuery) setStatus(status Status) {
 
 func (q *BatchQuery) getStatus() Status {
 	return Status(atomic.LoadUint32((*uint32)(&q.status)))
+}
+
+func (q *BatchQuery) mw() MetricsWriter {
+	return q.config.MetricsWriter
 }
 
 type pair struct {
