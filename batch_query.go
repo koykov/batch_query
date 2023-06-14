@@ -5,9 +5,12 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/koykov/bitset"
 )
 
 type Status uint32
+type flushReason uint8
 
 const (
 	StatusNil Status = iota
@@ -16,8 +19,15 @@ const (
 	StatusThrottle
 	StatusClose
 )
+const (
+	flushReasonSize flushReason = iota
+	flushReasonInterval
+	flushReasonForce
+)
+const flagTimer = 0
 
 type BatchQuery struct {
+	bitset.Bitset
 	once   sync.Once
 	config *Config
 	status Status
@@ -28,7 +38,7 @@ type BatchQuery struct {
 	mux    sync.Mutex
 	buf    []pair
 	c      chan []pair
-	timer  *time.Timer
+	timer  *timer
 	cancel context.CancelFunc
 
 	err error
@@ -59,6 +69,8 @@ func (q *BatchQuery) init() {
 	if c.CollectInterval <= 0 {
 		c.CollectInterval = defaultCollectInterval
 	}
+	q.timer = newTimer()
+
 	if c.Workers == 0 {
 		q.err = ErrNoWorkers
 		q.status = StatusFail
@@ -144,12 +156,19 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 	defer q.mux.Unlock()
 	q.buf = append(q.buf, pair{key: key, c: c})
 	if uint64(len(q.buf)) == q.chunkSize {
-		q.flushLF()
+		q.flushLF(flushReasonSize)
 		return
 	}
 }
 
-func (q *BatchQuery) flushLF() {
+func (q *BatchQuery) flush(reason flushReason) {
+	q.mux.Lock()
+	defer q.mux.Unlock()
+	q.flushLF(reason)
+}
+
+func (q *BatchQuery) flushLF(reason flushReason) {
+	_ = reason
 	cpy := append([]pair(nil), q.buf...)
 	q.buf = q.buf[:0]
 	q.c <- cpy
@@ -162,7 +181,7 @@ func (q *BatchQuery) Close() error {
 	q.setStatus(StatusClose)
 	q.mux.Lock()
 	defer q.mux.Unlock()
-	q.flushLF()
+	q.flushLF(flushReasonForce)
 	close(q.c)
 	q.cancel()
 	return nil
