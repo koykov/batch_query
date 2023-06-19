@@ -200,6 +200,23 @@ func (q *BatchQuery) Close() error {
 	return nil
 }
 
+func (q *BatchQuery) ForceClose() error {
+	if q.getStatus() == StatusClose {
+		return ErrQueryClosed
+	}
+	q.setStatus(StatusClose)
+	q.mux.Lock()
+	defer q.mux.Unlock()
+	close(q.c)
+	for x := range q.c {
+		for _, p := range x {
+			p.c <- tuple{err: ErrInterrupt}
+		}
+	}
+	q.cancel()
+	return nil
+}
+
 func (q *BatchQuery) Error() error {
 	return q.err
 }
