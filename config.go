@@ -16,6 +16,8 @@ type Config struct {
 	Batcher         Batcher
 
 	MetricsWriter MetricsWriter
+
+	Logger Logger
 }
 
 func (c *Config) Copy() *Config {

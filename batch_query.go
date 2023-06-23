@@ -2,6 +2,7 @@ package batch_query
 
 import (
 	"context"
+	"math"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -10,7 +11,6 @@ import (
 )
 
 type Status uint32
-type flushReason uint8
 
 const (
 	StatusNil Status = iota
@@ -18,11 +18,6 @@ const (
 	StatusActive
 	StatusThrottle
 	StatusClose
-)
-const (
-	flushReasonSize flushReason = iota
-	flushReasonInterval
-	flushReasonForce
 )
 const flagTimer = 0
 
@@ -38,6 +33,7 @@ type BatchQuery struct {
 	mux    sync.Mutex
 	buf    []pair
 	c      chan []pair
+	idx    uint64
 	timer  *timer
 	cancel context.CancelFunc
 
@@ -90,6 +86,7 @@ func (q *BatchQuery) init() {
 	}
 
 	q.c = make(chan []pair, q.config.Buffer)
+	q.idx = math.MaxUint64
 
 	var ctx context.Context
 	ctx, q.cancel = context.WithCancel(context.Background())
@@ -98,16 +95,23 @@ func (q *BatchQuery) init() {
 			for {
 				select {
 				case p := <-q.c:
+					idx := atomic.AddUint64(&q.idx, 1)
 					// Prepare keys.
 					keys := make([]any, 0, len(p))
 					for i := 0; i < len(p); i++ {
 						keys = append(keys, p[i].key)
+					}
+					if l := q.l(); l != nil {
+						l.Printf("batch #%d of %d keys\n", idx, len(keys))
 					}
 					// Exec batch operation.
 					dst := make([]any, 0, len(p))
 					var err error
 					dst, err = q.config.Batcher.Batch(dst, keys, ctx)
 					if err != nil {
+						if l := q.l(); l != nil {
+							l.Printf("batch #%d failed due to error: %s\n", idx, err.Error())
+						}
 						q.mw().BatchFail()
 						// Report about error encountered.
 						for i := 0; i < len(p); i++ {
@@ -116,6 +120,7 @@ func (q *BatchQuery) init() {
 						continue
 					}
 					q.mw().BatchOut()
+					var s, r int
 					// Send values to corresponding channels.
 					for i := 0; i < len(dst); i++ {
 						for j := 0; j < len(p); j++ {
@@ -124,6 +129,7 @@ func (q *BatchQuery) init() {
 							}
 							if p[j].done = q.config.Batcher.CheckKey(p[j].key, dst[i]); p[j].done {
 								p[j].c <- tuple{val: dst[i]}
+								s++
 								continue
 							}
 						}
@@ -132,7 +138,11 @@ func (q *BatchQuery) init() {
 					for i := 0; i < len(p); i++ {
 						if !p[i].done {
 							p[i].c <- tuple{err: ErrNotFound}
+							r++
 						}
+					}
+					if l := q.l(); l != nil {
+						l.Printf("batch #%d finish with %d success jobs, %d jobs unresponded\n", idx, s, r)
 					}
 				case <-ctx.Done():
 					return
@@ -173,20 +183,6 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 	}
 }
 
-func (q *BatchQuery) flush(reason flushReason) {
-	q.mux.Lock()
-	defer q.mux.Unlock()
-	q.flushLF(reason)
-}
-
-func (q *BatchQuery) flushLF(reason flushReason) {
-	_ = reason
-	cpy := append([]pair(nil), q.buf...)
-	q.buf = q.buf[:0]
-	q.mw().BatchIn()
-	q.c <- cpy
-}
-
 func (q *BatchQuery) Close() error {
 	if q.getStatus() == StatusClose {
 		return ErrQueryClosed
@@ -197,6 +193,9 @@ func (q *BatchQuery) Close() error {
 	q.flushLF(flushReasonForce)
 	close(q.c)
 	q.cancel()
+	if l := q.l(); l != nil {
+		l.Printf("caught close signal\n")
+	}
 	return nil
 }
 
@@ -208,12 +207,17 @@ func (q *BatchQuery) ForceClose() error {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 	close(q.c)
+	var c int
 	for x := range q.c {
 		for _, p := range x {
 			p.c <- tuple{err: ErrInterrupt}
+			c++
 		}
 	}
 	q.cancel()
+	if l := q.l(); l != nil {
+		l.Printf("caught force close signal, %d jobs interrupted\n", c)
+	}
 	return nil
 }
 
@@ -231,6 +235,10 @@ func (q *BatchQuery) getStatus() Status {
 
 func (q *BatchQuery) mw() MetricsWriter {
 	return q.config.MetricsWriter
+}
+
+func (q *BatchQuery) l() Logger {
+	return q.config.Logger
 }
 
 type pair struct {
