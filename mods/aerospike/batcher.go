@@ -15,7 +15,29 @@ type Batcher struct {
 }
 
 func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
-	// todo implement me
+	askeys := make([]*aerospike.Key, 0, len(keys))
+	for i := 0; i < len(keys); i++ {
+		var (
+			ask *aerospike.Key
+			err error
+		)
+		switch keys[i].(type) {
+		case *aerospike.Key:
+			ask = keys[i].(*aerospike.Key)
+		default:
+			if ask, err = aerospike.NewKey(b.Namespace, b.SetName, keys[i]); err != nil {
+				return dst, nil
+			}
+		}
+		askeys = append(askeys, ask)
+	}
+	records, err := b.Client.BatchGet(b.Policy, askeys, b.Bins...)
+	if err != nil {
+		return dst, err
+	}
+	for i := 0; i < len(records); i++ {
+		dst = append(dst, records[i])
+	}
 	return dst, nil
 }
 
