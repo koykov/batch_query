@@ -14,7 +14,7 @@ type Batcher struct {
 	Client    *aerospike.Client
 }
 
-func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
+func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) {
 	askeys := make([]*aerospike.Key, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		var (
@@ -42,14 +42,27 @@ func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error
 }
 
 func (b Batcher) CheckKey(key, val any) bool {
-	var (
-		ask, asv *aerospike.Key
-		ok       bool
-	)
-	if ask, ok = key.(*aerospike.Key); !ok || ask == nil {
+	var ask, asv *aerospike.Key
+	switch key.(type) {
+	case *aerospike.Key:
+		ask = key.(*aerospike.Key)
+	default:
+		ask, _ = aerospike.NewKey(b.Namespace, b.SetName, key)
+	}
+	switch val.(type) {
+	case *aerospike.Key:
+		asv = val.(*aerospike.Key)
+	case *aerospike.Record:
+		if raw := val.(*aerospike.Record); raw != nil {
+			asv = val.(*aerospike.Record).Key
+		}
+	default:
 		return false
 	}
-	if asv, ok = val.(*aerospike.Key); !ok || asv == nil {
+	if ask != nil && asv == nil {
+		return false
+	}
+	if ask == nil && asv != nil {
 		return false
 	}
 	return ask.Equals(asv)
