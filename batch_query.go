@@ -181,6 +181,10 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 		q.flushLF(flushReasonSize)
 		return
 	}
+	if !q.CheckBit(flagTimer) {
+		q.SetBit(flagTimer, true)
+		go q.timer.wait(q)
+	}
 }
 
 func (q *BatchQuery) Close() error {
