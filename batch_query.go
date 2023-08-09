@@ -5,7 +5,6 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
-	"time"
 
 	"github.com/koykov/bitset"
 )
@@ -26,9 +25,6 @@ type BatchQuery struct {
 	once   sync.Once
 	config *Config
 	status Status
-
-	chunkSize   uint64
-	collectTime time.Duration
 
 	mux    sync.Mutex
 	buf    []pair
@@ -177,7 +173,7 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 	q.buf = append(q.buf, pair{key: key, c: c})
-	if uint64(len(q.buf)) == q.chunkSize {
+	if uint64(len(q.buf)) == q.config.ChunkSize {
 		q.flushLF(flushReasonSize)
 		return
 	}
