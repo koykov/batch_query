@@ -29,7 +29,7 @@ func (q *BatchQuery) flush(reason flushReason) {
 
 func (q *BatchQuery) flushLF(reason flushReason) {
 	if reason != flushReasonInterval {
-		q.timer.stop()
+		q.timer.reset()
 	}
 	cpy := append([]pair(nil), q.buf...)
 	q.buf = q.buf[:0]
