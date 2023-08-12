@@ -15,6 +15,18 @@ type Batcher struct {
 }
 
 func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) {
+	if len(b.Namespace) == 0 {
+		return dst, ErrNoNS
+	}
+	if len(b.SetName) == 0 {
+		return dst, ErrNoSet
+	}
+	if b.Policy == nil {
+		return dst, ErrNoPolicy
+	}
+	if b.Client == nil {
+		return dst, ErrNoClient
+	}
 	askeys := make([]*aerospike.Key, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		var (
