@@ -21,6 +21,9 @@ func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) 
 	if len(b.SetName) == 0 {
 		return dst, ErrNoSet
 	}
+	if len(b.Bins) == 0 {
+		return dst, ErrNoBins
+	}
 	if b.Policy == nil {
 		return dst, ErrNoPolicy
 	}
