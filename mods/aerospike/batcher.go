@@ -3,15 +3,15 @@ package aerospike
 import (
 	"context"
 
-	"github.com/aerospike/aerospike-client-go"
+	as "github.com/aerospike/aerospike-client-go"
 )
 
 type Batcher struct {
 	Namespace string
 	SetName   string
 	Bins      []string
-	Policy    *aerospike.BatchPolicy
-	Client    *aerospike.Client
+	Policy    *as.BatchPolicy
+	Client    *as.Client
 }
 
 func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) {
@@ -30,17 +30,17 @@ func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) 
 	if b.Client == nil {
 		return dst, ErrNoClient
 	}
-	askeys := make([]*aerospike.Key, 0, len(keys))
+	askeys := make([]*as.Key, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		var (
-			ask *aerospike.Key
+			ask *as.Key
 			err error
 		)
 		switch keys[i].(type) {
-		case *aerospike.Key:
-			ask = keys[i].(*aerospike.Key)
+		case *as.Key:
+			ask = keys[i].(*as.Key)
 		default:
-			if ask, err = aerospike.NewKey(b.Namespace, b.SetName, keys[i]); err != nil {
+			if ask, err = as.NewKey(b.Namespace, b.SetName, keys[i]); err != nil {
 				return dst, nil
 			}
 		}
@@ -57,19 +57,19 @@ func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) 
 }
 
 func (b Batcher) CheckKey(key, val any) bool {
-	var ask, asv *aerospike.Key
+	var ask, asv *as.Key
 	switch key.(type) {
-	case *aerospike.Key:
-		ask = key.(*aerospike.Key)
+	case *as.Key:
+		ask = key.(*as.Key)
 	default:
-		ask, _ = aerospike.NewKey(b.Namespace, b.SetName, key)
+		ask, _ = as.NewKey(b.Namespace, b.SetName, key)
 	}
 	switch val.(type) {
-	case *aerospike.Key:
-		asv = val.(*aerospike.Key)
-	case *aerospike.Record:
-		if raw := val.(*aerospike.Record); raw != nil {
-			asv = val.(*aerospike.Record).Key
+	case *as.Key:
+		asv = val.(*as.Key)
+	case *as.Record:
+		if raw := val.(*as.Record); raw != nil {
+			asv = raw.Key
 		}
 	default:
 		return false
