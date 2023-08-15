@@ -15,6 +15,7 @@ const (
 
 // Internal timer implementation.
 type timer struct {
+	t *time.Timer
 	c chan timerSignal
 	s uint32
 }
@@ -26,7 +27,7 @@ func newTimer() *timer {
 
 // Background waiter method.
 func (t *timer) wait(query *BatchQuery) {
-	time.AfterFunc(query.config.CollectInterval, func() {
+	t.t = time.AfterFunc(query.config.CollectInterval, func() {
 		t.reach()
 		query.SetBit(flagTimer, false)
 	})
@@ -39,8 +40,10 @@ func (t *timer) wait(query *BatchQuery) {
 		case timerReach:
 			query.flush(flushReasonInterval)
 		case timerReset:
+			t.t.Stop()
 			break
 		case timerStop:
+			t.t.Stop()
 			atomic.StoreUint32(&t.s, 1)
 			close(t.c)
 			return
