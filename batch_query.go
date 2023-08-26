@@ -5,6 +5,7 @@ import (
 	"math"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/koykov/bitset"
 )
@@ -151,6 +152,14 @@ func (q *BatchQuery) init() {
 }
 
 func (q *BatchQuery) Find(key any) (any, error) {
+	return q.FindTimeout(key, math.MaxInt64)
+}
+
+func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
+	if timeout <= 0 {
+		return nil, ErrTimeout
+	}
+
 	q.once.Do(q.init)
 	if status := q.getStatus(); status == StatusClose || status == StatusFail {
 		return nil, ErrQueryClosed
@@ -159,14 +168,23 @@ func (q *BatchQuery) Find(key any) (any, error) {
 	q.mw().FindIn()
 	c := make(chan tuple, 1)
 	q.find(key, c)
-	rec := <-c
-	close(c)
-	if rec.err != nil {
-		q.mw().FindFail()
-	} else {
-		q.mw().FindOut()
+	select {
+	case rec := <-c:
+		close(c)
+		if rec.err != nil {
+			q.mw().FindFail()
+		} else {
+			q.mw().FindOut()
+		}
+		return rec.val, rec.err
+	case <-time.After(timeout):
+		return nil, ErrTimeout
 	}
-	return rec.val, rec.err
+}
+
+func (q *BatchQuery) FindDeadline(key any, deadline time.Time) (any, error) {
+	timeout := -time.Since(deadline)
+	return q.FindTimeout(key, timeout)
 }
 
 func (q *BatchQuery) find(key any, c chan tuple) {
