@@ -181,6 +181,7 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 		}
 		return rec.val, rec.err
 	case <-time.After(timeout):
+		q.mw().FindTimeout()
 		return nil, ErrTimeout
 	}
 }
