@@ -1,16 +1,21 @@
 package batch_query
 
-import "time"
+import (
+	"math"
+	"time"
+)
 
 const (
 	defaultChunkSize       = 64
 	defaultCollectInterval = time.Second
+	defaultTimeoutInterval = math.MaxInt64
 	defaultBuffer          = 16
 )
 
 type Config struct {
 	ChunkSize       uint64
 	CollectInterval time.Duration
+	TimeoutInterval time.Duration
 	Workers         uint
 	Buffer          uint64
 	Batcher         Batcher

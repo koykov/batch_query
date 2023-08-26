@@ -62,6 +62,9 @@ func (q *BatchQuery) init() {
 	if c.CollectInterval <= 0 {
 		c.CollectInterval = defaultCollectInterval
 	}
+	if c.TimeoutInterval <= 0 {
+		c.TimeoutInterval = defaultTimeoutInterval
+	}
 	q.timer = newTimer()
 
 	if c.Workers == 0 {
@@ -152,7 +155,7 @@ func (q *BatchQuery) init() {
 }
 
 func (q *BatchQuery) Find(key any) (any, error) {
-	return q.FindTimeout(key, math.MaxInt64)
+	return q.FindTimeout(key, q.config.TimeoutInterval)
 }
 
 func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
