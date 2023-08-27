@@ -141,6 +141,10 @@ func (q *BatchQuery) init() {
 							r++
 						}
 					}
+					// Close all channels.
+					for i := 0; i < len(p); i++ {
+						close(p[i].c)
+					}
 					if l := q.l(); l != nil {
 						l.Printf("batch #%d finish with %d success jobs, %d jobs unresponded\n", idx, s, r)
 					}
@@ -173,7 +177,6 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 	q.find(key, c)
 	select {
 	case rec := <-c:
-		close(c)
 		if rec.err != nil {
 			q.mw().FindFail()
 		} else {
