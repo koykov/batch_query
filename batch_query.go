@@ -129,6 +129,7 @@ func (q *BatchQuery) init() {
 							}
 							if p[j].done = q.config.Batcher.CheckKey(p[j].key, dst[i]); p[j].done {
 								p[j].c <- tuple{val: dst[i]}
+								close(p[j].c)
 								s++
 								continue
 							}
@@ -138,12 +139,9 @@ func (q *BatchQuery) init() {
 					for i := 0; i < len(p); i++ {
 						if !p[i].done {
 							p[i].c <- tuple{err: ErrNotFound}
+							close(p[i].c)
 							r++
 						}
-					}
-					// Close all channels.
-					for i := 0; i < len(p); i++ {
-						close(p[i].c)
 					}
 					if l := q.l(); l != nil {
 						l.Printf("batch #%d finish with %d success jobs, %d jobs unresponded\n", idx, s, r)
