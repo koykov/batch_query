@@ -170,19 +170,19 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 		return nil, ErrQueryClosed
 	}
 
-	q.mw().FindIn()
+	q.mw().FetchIn()
 	c := make(chan tuple, 1)
 	q.find(key, c)
 	select {
 	case rec := <-c:
 		if rec.err != nil {
-			q.mw().FindFail()
+			q.mw().FetchFail()
 		} else {
-			q.mw().FindOut()
+			q.mw().FetchOut()
 		}
 		return rec.val, rec.err
 	case <-time.After(timeout):
-		q.mw().FindTimeout()
+		q.mw().FetchTimeout()
 		return nil, ErrTimeout
 	}
 }

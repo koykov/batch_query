@@ -1,10 +1,10 @@
 package batch_query
 
 type MetricsWriter interface {
-	FindIn()
-	FindOut()
-	FindTimeout()
-	FindFail()
+	FetchIn()
+	FetchOut()
+	FetchTimeout()
+	FetchFail()
 	BatchIn()
 	BatchOut()
 	BatchFail()
