@@ -127,7 +127,7 @@ func (q *BatchQuery) init() {
 							if p[j].done {
 								continue
 							}
-							if p[j].done = q.config.Batcher.CheckKey(p[j].key, dst[i]); p[j].done {
+							if p[j].done = q.config.Batcher.MatchKey(p[j].key, dst[i]); p[j].done {
 								p[j].c <- tuple{val: dst[i]}
 								close(p[j].c)
 								s++

@@ -56,7 +56,7 @@ func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) 
 	return dst, nil
 }
 
-func (b Batcher) CheckKey(key, val any) bool {
+func (b Batcher) MatchKey(key, val any) bool {
 	var ask, asv *as.Key
 	switch key.(type) {
 	case *as.Key:
