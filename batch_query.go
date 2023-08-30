@@ -119,7 +119,7 @@ func (q *BatchQuery) init() {
 						}
 						continue
 					}
-					q.mw().BatchOut()
+					q.mw().BatchOK()
 					var s, r int
 					// Send values to corresponding channels.
 					for i := 0; i < len(dst); i++ {
@@ -170,15 +170,15 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 		return nil, ErrQueryClosed
 	}
 
-	q.mw().FetchIn()
+	q.mw().Fetch()
 	c := make(chan tuple, 1)
 	q.find(key, c)
 	select {
 	case rec := <-c:
 		if rec.err != nil {
-			q.mw().FetchFail()
+			q.mw().Fail()
 		} else {
-			q.mw().FetchOut()
+			q.mw().OK()
 		}
 		return rec.val, rec.err
 	case <-time.After(timeout):

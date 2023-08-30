@@ -33,7 +33,7 @@ func (q *BatchQuery) flushLF(reason flushReason) {
 	}
 	cpy := append([]pair(nil), q.buf...)
 	q.buf = q.buf[:0]
-	q.mw().BatchIn()
+	q.mw().Batch()
 	if l := q.l(); l != nil {
 		l.Printf("flush by reason '%s'\n", reason.String())
 	}
