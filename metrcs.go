@@ -3,7 +3,7 @@ package batch_query
 type MetricsWriter interface {
 	Fetch()
 	OK()
-	FetchTimeout()
+	Timeout()
 	Fail()
 	Batch()
 	BatchOK()
