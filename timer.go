@@ -41,6 +41,7 @@ func (t *timer) wait(query *BatchQuery) {
 			query.flush(flushReasonInterval)
 		case timerReset:
 			t.t.Stop()
+			query.SetBit(flagTimer, false)
 			break
 		case timerStop:
 			t.t.Stop()
