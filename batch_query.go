@@ -175,9 +175,12 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 	q.find(key, c)
 	select {
 	case rec := <-c:
-		if rec.err != nil {
+		switch {
+		case rec.err != nil && rec.err == ErrNotFound:
+			q.mw().NotFound()
+		case rec.err != nil && rec.err != ErrNotFound:
 			q.mw().Fail()
-		} else {
+		default:
 			q.mw().OK()
 		}
 		return rec.val, rec.err

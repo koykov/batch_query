@@ -5,6 +5,7 @@ type DummyMetrics struct{}
 func (DummyMetrics) Fetch()     {}
 func (DummyMetrics) OK()        {}
 func (DummyMetrics) Timeout()   {}
+func (DummyMetrics) NotFound()  {}
 func (DummyMetrics) Fail()      {}
 func (DummyMetrics) Batch()     {}
 func (DummyMetrics) BatchOK()   {}
