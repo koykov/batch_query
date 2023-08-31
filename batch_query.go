@@ -19,7 +19,10 @@ const (
 	StatusThrottle
 	StatusClose
 )
-const flagTimer = 0
+const (
+	flagTimer     = 0
+	flagNoMetrics = 1
+)
 
 type BatchQuery struct {
 	bitset.Bitset
@@ -83,6 +86,7 @@ func (q *BatchQuery) init() {
 
 	if c.MetricsWriter == nil {
 		c.MetricsWriter = DummyMetrics{}
+		q.SetBit(flagNoMetrics, true)
 	}
 
 	q.c = make(chan []pair, q.config.Buffer)
@@ -107,6 +111,7 @@ func (q *BatchQuery) init() {
 					// Exec batch operation.
 					dst := make([]any, 0, len(p))
 					var err error
+					now := q.now()
 					dst, err = q.config.Batcher.Batch(dst, keys, ctx)
 					if err != nil {
 						if l := q.l(); l != nil {
@@ -119,7 +124,7 @@ func (q *BatchQuery) init() {
 						}
 						continue
 					}
-					q.mw().BatchOK()
+					q.mw().BatchOK(q.now().Sub(now))
 					var s, r int
 					// Send values to corresponding channels.
 					for i := 0; i < len(dst); i++ {
@@ -172,6 +177,7 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 
 	q.mw().Fetch()
 	c := make(chan tuple, 1)
+	now := q.now()
 	q.find(key, c)
 	select {
 	case rec := <-c:
@@ -181,7 +187,7 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 		case rec.err != nil && rec.err != ErrNotFound:
 			q.mw().Fail()
 		default:
-			q.mw().OK()
+			q.mw().OK(q.now().Sub(now))
 		}
 		return rec.val, rec.err
 	case <-time.After(timeout):
@@ -265,6 +271,14 @@ func (q *BatchQuery) mw() MetricsWriter {
 
 func (q *BatchQuery) l() Logger {
 	return q.config.Logger
+}
+
+func (q *BatchQuery) now() (t time.Time) {
+	if q.CheckBit(flagNoMetrics) {
+		return
+	}
+	t = time.Now()
+	return
 }
 
 type pair struct {

@@ -1,12 +1,14 @@
 package batch_query
 
+import "time"
+
 type MetricsWriter interface {
 	Fetch()
-	OK()
+	OK(duration time.Duration)
 	NotFound()
 	Timeout()
 	Fail()
 	Batch()
-	BatchOK()
+	BatchOK(duration time.Duration)
 	BatchFail()
 }
