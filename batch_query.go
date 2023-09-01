@@ -59,8 +59,8 @@ func (q *BatchQuery) init() {
 	q.config = q.config.Copy()
 	c := q.config
 
-	if c.ChunkSize == 0 {
-		c.ChunkSize = defaultChunkSize
+	if c.BatchSize == 0 {
+		c.BatchSize = defaultBatchSize
 	}
 	if c.CollectInterval <= 0 {
 		c.CollectInterval = defaultCollectInterval
@@ -205,7 +205,7 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 	q.buf = append(q.buf, pair{key: key, c: c})
-	if uint64(len(q.buf)) == q.config.ChunkSize {
+	if uint64(len(q.buf)) == q.config.BatchSize {
 		q.flushLF(flushReasonSize)
 		return
 	}

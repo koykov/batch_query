@@ -6,14 +6,14 @@ import (
 )
 
 const (
-	defaultChunkSize       = 64
+	defaultBatchSize       = 64
 	defaultCollectInterval = time.Second
 	defaultTimeoutInterval = math.MaxInt64
 	defaultBuffer          = 16
 )
 
 type Config struct {
-	ChunkSize       uint64
+	BatchSize       uint64
 	CollectInterval time.Duration
 	TimeoutInterval time.Duration
 	Workers         uint
