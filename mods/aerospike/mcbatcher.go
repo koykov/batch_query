@@ -2,19 +2,22 @@ package aerospike
 
 import (
 	"context"
+	"sync/atomic"
 
 	as "github.com/aerospike/aerospike-client-go"
 )
 
-type Batcher struct {
+type MCBatcher struct {
 	Namespace string
 	SetName   string
 	Bins      []string
 	Policy    *as.BatchPolicy
-	Client    *as.Client
+	Clients   []*as.Client
+
+	c uint64
 }
 
-func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
+func (b MCBatcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
 	if len(b.Namespace) == 0 {
 		return dst, ErrNoNS
 	}
@@ -27,14 +30,18 @@ func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error
 	if b.Policy == nil {
 		return dst, ErrNoPolicy
 	}
-	if b.Client == nil {
+	if len(b.Clients) == 0 {
+		return dst, ErrNoClients
+	}
+	cln := b.Clients[atomic.AddUint64(&b.c, 1)%uint64(len(b.Clients))]
+	if cln == nil {
 		return dst, ErrNoClient
 	}
 	var err error
-	dst, err = fetch(b.Client, b.Policy, b.Namespace, b.SetName, b.Bins, dst, keys, ctx)
+	dst, err = fetch(cln, b.Policy, b.Namespace, b.SetName, b.Bins, dst, keys, ctx)
 	return dst, err
 }
 
-func (b Batcher) MatchKey(key, val any) bool {
+func (b MCBatcher) MatchKey(key, val any) bool {
 	return matchKey(key, val, b.Namespace, b.SetName)
 }
