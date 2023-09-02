@@ -7,6 +7,7 @@ import (
 	as "github.com/aerospike/aerospike-client-go"
 )
 
+// MCBatcher (experimental).
 type MCBatcher struct {
 	Namespace string
 	SetName   string
