@@ -272,7 +272,7 @@ func (q *BatchQuery) l() Logger {
 }
 
 func (q *BatchQuery) now() (t time.Time) {
-	if atomic.LoadUint32(&q.flags[flagNoMetrics]) == 0 {
+	if atomic.LoadUint32(&q.flags[flagNoMetrics]) == 1 {
 		return
 	}
 	t = time.Now()
