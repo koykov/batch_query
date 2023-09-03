@@ -108,6 +108,7 @@ func (q *BatchQuery) init() {
 			for {
 				select {
 				case p := <-q.c:
+					q.mw().BufferOut()
 					idx := atomic.AddUint64(&q.idx, 1)
 					// Prepare keys.
 					keys := make([]any, 0, len(p))
@@ -189,7 +190,7 @@ func (q *BatchQuery) FetchTimeout(key any, timeout time.Duration) (any, error) {
 	q.mw().Fetch()
 	c := make(chan tuple, 1)
 	now := q.now()
-	q.find(key, c)
+	q.fetch(key, c)
 	select {
 	case rec := <-c:
 		switch {
@@ -213,7 +214,7 @@ func (q *BatchQuery) FetchDeadline(key any, deadline time.Time) (any, error) {
 	return q.FetchTimeout(key, timeout)
 }
 
-func (q *BatchQuery) find(key any, c chan tuple) {
+func (q *BatchQuery) fetch(key any, c chan tuple) {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 	q.buf = append(q.buf, pair{key: key, c: c})

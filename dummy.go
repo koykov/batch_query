@@ -14,3 +14,5 @@ func (DummyMetrics) Fail()                   {}
 func (DummyMetrics) Batch()                  {}
 func (DummyMetrics) BatchOK(_ time.Duration) {}
 func (DummyMetrics) BatchFail()              {}
+func (DummyMetrics) BufferIn(_ string)       {}
+func (DummyMetrics) BufferOut()              {}

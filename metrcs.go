@@ -21,4 +21,8 @@ type MetricsWriter interface {
 	BatchOK(duration time.Duration)
 	// BatchFail registers failed batch processing.
 	BatchFail()
+	// BufferIn registers incoming of new batch to internal buffer.
+	BufferIn(reason string)
+	// BufferOut registers outcoming of batch from internal buffer.
+	BufferOut()
 }

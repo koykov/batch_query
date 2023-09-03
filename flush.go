@@ -37,5 +37,6 @@ func (q *BatchQuery) flushLF(reason flushReason) {
 	if l := q.l(); l != nil {
 		l.Printf("flush by reason '%s'\n", reason.String())
 	}
+	q.mw().BufferIn(reason.String())
 	q.c <- cpy
 }
