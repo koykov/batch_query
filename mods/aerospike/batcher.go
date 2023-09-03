@@ -6,6 +6,7 @@ import (
 	as "github.com/aerospike/aerospike-client-go"
 )
 
+// Batcher implements Aerospike batcher.
 type Batcher struct {
 	Namespace string
 	SetName   string

@@ -7,7 +7,8 @@ import (
 	as "github.com/aerospike/aerospike-client-go"
 )
 
-// MCBatcher (experimental).
+// MCBatcher implements multi-client Aerospike batcher.
+// Experimental feature.
 type MCBatcher struct {
 	Namespace string
 	SetName   string
