@@ -21,7 +21,7 @@ type Config struct {
 	BatchSize uint64
 	// How long collect requests before process the batch.
 	// Timer starts by first request incoming and stops after process the batch. After reach that interval betch will
-	// process even contains one request.
+	// process even contains only one request.
 	// If this param omit defaultCollectInterval (1 second) will use instead.
 	CollectInterval time.Duration
 	// How long request may wait collecting and processing. Must be greater that CollectInterval.
