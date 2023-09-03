@@ -6,8 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/koykov/bitset"
 )
 
 type Status uint32
@@ -25,10 +23,10 @@ const (
 )
 
 type BatchQuery struct {
-	bitset.Bitset
 	once   sync.Once
 	config *Config
 	status Status
+	flags  [2]uint32
 
 	mux    sync.Mutex
 	buf    []pair
@@ -86,7 +84,7 @@ func (q *BatchQuery) init() {
 
 	if c.MetricsWriter == nil {
 		c.MetricsWriter = DummyMetrics{}
-		q.SetBit(flagNoMetrics, true)
+		atomic.StoreUint32(&q.flags[flagNoMetrics], 1)
 	}
 
 	q.c = make(chan []pair, q.config.Buffer)
@@ -209,8 +207,8 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 		q.flushLF(flushReasonSize)
 		return
 	}
-	if !q.CheckBit(flagTimer) {
-		q.SetBit(flagTimer, true)
+	if atomic.LoadUint32(&q.flags[flagTimer]) == 0 {
+		atomic.StoreUint32(&q.flags[flagTimer], 1)
 		go q.timer.wait(q)
 	}
 }
@@ -274,7 +272,7 @@ func (q *BatchQuery) l() Logger {
 }
 
 func (q *BatchQuery) now() (t time.Time) {
-	if q.CheckBit(flagNoMetrics) {
+	if atomic.LoadUint32(&q.flags[flagNoMetrics]) == 0 {
 		return
 	}
 	t = time.Now()

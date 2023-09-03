@@ -32,22 +32,27 @@ func (t *timer) wait(query *BatchQuery) {
 		query.SetBit(flagTimer, false)
 	})
 	for {
-		signal, ok := <-t.c
-		if !ok {
-			return
-		}
-		switch signal {
-		case timerReach:
-			query.flush(flushReasonInterval)
-		case timerReset:
-			t.t.Stop()
-			query.SetBit(flagTimer, false)
-			break
-		case timerStop:
-			t.t.Stop()
-			atomic.StoreUint32(&t.s, 1)
-			close(t.c)
-			return
+		select {
+		case signal, ok := <-t.c:
+			if !ok {
+				return
+			}
+			switch signal {
+			case timerReach:
+				query.flush(flushReasonInterval)
+			case timerReset:
+				t.t.Stop()
+				atomic.StoreUint32(&query.flags[flagTimer], 0)
+				break
+			case timerStop:
+				t.t.Stop()
+				atomic.StoreUint32(&t.s, 1)
+				close(t.c)
+				return
+			}
+		case <-t.t.C:
+			t.reach()
+			atomic.StoreUint32(&query.flags[flagTimer], 0)
 		}
 	}
 }
