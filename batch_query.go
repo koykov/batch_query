@@ -66,6 +66,11 @@ func (q *BatchQuery) init() {
 	if c.TimeoutInterval <= 0 {
 		c.TimeoutInterval = defaultTimeoutInterval
 	}
+	if c.TimeoutInterval < c.CollectInterval {
+		q.err = ErrBadIntervals
+		q.status = StatusFail
+		return
+	}
 	q.timer = newTimer()
 
 	if c.Workers == 0 {
