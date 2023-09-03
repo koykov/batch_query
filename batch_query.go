@@ -170,13 +170,13 @@ func (q *BatchQuery) init() {
 	q.setStatus(StatusActive)
 }
 
-// Find add single request to current batch using default timeout interval.
-func (q *BatchQuery) Find(key any) (any, error) {
-	return q.FindTimeout(key, q.config.TimeoutInterval)
+// Fetch add single request to current batch using default timeout interval.
+func (q *BatchQuery) Fetch(key any) (any, error) {
+	return q.FetchTimeout(key, q.config.TimeoutInterval)
 }
 
-// FindTimeout add single request to current batch using given timeout interval.
-func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
+// FetchTimeout add single request to current batch using given timeout interval.
+func (q *BatchQuery) FetchTimeout(key any, timeout time.Duration) (any, error) {
 	if timeout <= 0 {
 		return nil, ErrTimeout
 	}
@@ -207,10 +207,10 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 	}
 }
 
-// FindDeadline add single request to current batch using given deadline.
-func (q *BatchQuery) FindDeadline(key any, deadline time.Time) (any, error) {
+// FetchDeadline add single request to current batch using given deadline.
+func (q *BatchQuery) FetchDeadline(key any, deadline time.Time) (any, error) {
 	timeout := -time.Since(deadline)
-	return q.FindTimeout(key, timeout)
+	return q.FetchTimeout(key, timeout)
 }
 
 func (q *BatchQuery) find(key any, c chan tuple) {
