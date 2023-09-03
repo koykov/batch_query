@@ -22,6 +22,8 @@ const (
 	flagNoMetrics = 1
 )
 
+// BatchQuery is an implementation of query that collects single request to resource (database, network, ...) to batches
+// and thus reduces pressure to resource.
 type BatchQuery struct {
 	once   sync.Once
 	config *Config
@@ -38,6 +40,7 @@ type BatchQuery struct {
 	err error
 }
 
+// New makes new query instance and initialize it according config params.
 func New(conf *Config) (*BatchQuery, error) {
 	if conf == nil {
 		return nil, ErrNoConfig
@@ -54,9 +57,11 @@ func (q *BatchQuery) init() {
 		return
 	}
 
+	// Make a copy of config instance to protect queue from changing params after start.
 	q.config = q.config.Copy()
 	c := q.config
 
+	// Check config params.
 	if c.BatchSize == 0 {
 		c.BatchSize = defaultBatchSize
 	}
@@ -95,6 +100,7 @@ func (q *BatchQuery) init() {
 	q.c = make(chan []pair, q.config.Buffer)
 	q.idx = math.MaxUint64
 
+	// Run internal workers.
 	var ctx context.Context
 	ctx, q.cancel = context.WithCancel(context.Background())
 	for i := uint(0); i < c.Workers; i++ {
@@ -164,10 +170,12 @@ func (q *BatchQuery) init() {
 	q.setStatus(StatusActive)
 }
 
+// Find add single request to current batch using default timeout interval.
 func (q *BatchQuery) Find(key any) (any, error) {
 	return q.FindTimeout(key, q.config.TimeoutInterval)
 }
 
+// FindTimeout add single request to current batch using given timeout interval.
 func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 	if timeout <= 0 {
 		return nil, ErrTimeout
@@ -199,6 +207,7 @@ func (q *BatchQuery) FindTimeout(key any, timeout time.Duration) (any, error) {
 	}
 }
 
+// FindDeadline add single request to current batch using given deadline.
 func (q *BatchQuery) FindDeadline(key any, deadline time.Time) (any, error) {
 	timeout := -time.Since(deadline)
 	return q.FindTimeout(key, timeout)
@@ -218,6 +227,7 @@ func (q *BatchQuery) find(key any, c chan tuple) {
 	}
 }
 
+// Close gracefully stops the query.
 func (q *BatchQuery) Close() error {
 	if q.getStatus() == StatusClose {
 		return ErrQueryClosed
@@ -234,6 +244,7 @@ func (q *BatchQuery) Close() error {
 	return nil
 }
 
+// ForceClose closes the query and immediately flush all batches.
 func (q *BatchQuery) ForceClose() error {
 	if q.getStatus() == StatusClose {
 		return ErrQueryClosed
@@ -282,12 +293,6 @@ func (q *BatchQuery) now() (t time.Time) {
 	}
 	t = time.Now()
 	return
-}
-
-type pair struct {
-	key  any
-	c    chan tuple
-	done bool
 }
 
 var _ = New
