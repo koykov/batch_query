@@ -14,3 +14,7 @@ Check [Prometheus implementation](https://github.com/koykov/metrics_writers/tree
 ## Config params
 
 todo ...
+
+## Modules
+
+Currently, supports only [Aerospike](mods/aerospike) module.
