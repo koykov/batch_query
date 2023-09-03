@@ -2,6 +2,8 @@ package batch_query
 
 import "time"
 
+// DummyMetrics is a stub metrics writer handler that uses by default and does nothing.
+// Need just to reduce checks in code.
 type DummyMetrics struct{}
 
 func (DummyMetrics) Fetch()                  {}

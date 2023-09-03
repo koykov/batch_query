@@ -1,5 +1,7 @@
 package batch_query
 
+// Logger is an interface of logger interface.
+// Prints verbose messages.
 type Logger interface {
 	Printf(format string, v ...any)
 	Print(v ...any)
