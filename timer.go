@@ -1,6 +1,7 @@
 package batch_query
 
 import (
+	"math"
 	"sync/atomic"
 	"time"
 )
@@ -21,16 +22,16 @@ type timer struct {
 }
 
 func newTimer() *timer {
-	t := timer{c: make(chan timerSignal, 1)}
+	t := timer{
+		c: make(chan timerSignal, 1),
+		t: time.NewTimer(math.MaxInt64),
+	}
 	return &t
 }
 
 // Background waiter method.
 func (t *timer) wait(query *BatchQuery) {
-	t.t = time.AfterFunc(query.config.CollectInterval, func() {
-		t.reach()
-		query.SetBit(flagTimer, false)
-	})
+	t.t.Reset(query.config.CollectInterval)
 	for {
 		select {
 		case signal, ok := <-t.c:
