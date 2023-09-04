@@ -111,7 +111,10 @@ func (q *BatchQuery) init() {
 		go func(ctx context.Context) {
 			for {
 				select {
-				case p := <-q.c:
+				case p, ok := <-q.c:
+					if !ok {
+						return
+					}
 					q.mw().BufferOut()
 					idx := atomic.AddUint64(&q.idx, 1)
 					// Prepare keys.
