@@ -9,6 +9,7 @@ type DummyMetrics struct{}
 func (DummyMetrics) Fetch()                  {}
 func (DummyMetrics) OK(_ time.Duration)      {}
 func (DummyMetrics) Timeout()                {}
+func (DummyMetrics) Interrupt()              {}
 func (DummyMetrics) NotFound()               {}
 func (DummyMetrics) Fail()                   {}
 func (DummyMetrics) Batch()                  {}

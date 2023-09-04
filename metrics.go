@@ -13,6 +13,8 @@ type MetricsWriter interface {
 	NotFound()
 	// Timeout registers single request filed due to timeout error.
 	Timeout()
+	// Interrupt registers single request failed due to interrupt signal.
+	Interrupt()
 	// Fail registers any other error encountered.
 	Fail()
 	// Batch register processing start of batch.

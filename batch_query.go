@@ -18,8 +18,12 @@ const (
 	StatusClose
 )
 const (
-	flagTimer     = 0
-	flagNoMetrics = 1
+	flagTimer = iota
+	flagNoMetrics
+)
+const (
+	ctxInt uint8 = iota
+	ctxTO
 )
 
 // BatchQuery is an implementation of query that collects single request to resource (database, network, ...) to batches
@@ -176,21 +180,38 @@ func (q *BatchQuery) Fetch(key any) (any, error) {
 	return q.FetchTimeout(key, q.config.TimeoutInterval)
 }
 
+// FetchContext add single request to current batch with context.
+func (q *BatchQuery) FetchContext(key any, ctx context.Context) (any, error) {
+	q.once.Do(q.init)
+	if status := q.getStatus(); status == StatusClose || status == StatusFail {
+		return nil, ErrQueryClosed
+	}
+
+	return q.fetch(key, ctx, ctxInt)
+}
+
 // FetchTimeout add single request to current batch using given timeout interval.
 func (q *BatchQuery) FetchTimeout(key any, timeout time.Duration) (any, error) {
 	if timeout <= 0 {
 		return nil, ErrTimeout
 	}
 
-	q.once.Do(q.init)
-	if status := q.getStatus(); status == StatusClose || status == StatusFail {
-		return nil, ErrQueryClosed
-	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	_ = cancel
+	return q.fetch(key, ctx, ctxTO)
+}
 
+// FetchDeadline add single request to current batch using given deadline.
+func (q *BatchQuery) FetchDeadline(key any, deadline time.Time) (any, error) {
+	timeout := -time.Since(deadline)
+	return q.FetchTimeout(key, timeout)
+}
+
+func (q *BatchQuery) fetch(key any, ctx context.Context, ctxt uint8) (any, error) {
 	q.mw().Fetch()
 	c := make(chan tuple, 1)
 	now := q.now()
-	q.fetch(key, c)
+	q.fetch_(key, c)
 	select {
 	case rec := <-c:
 		switch {
@@ -202,19 +223,21 @@ func (q *BatchQuery) FetchTimeout(key any, timeout time.Duration) (any, error) {
 			q.mw().OK(q.now().Sub(now))
 		}
 		return rec.val, rec.err
-	case <-time.After(timeout):
-		q.mw().Timeout()
-		return nil, ErrTimeout
+	case <-ctx.Done():
+		switch ctxt {
+		case ctxTO:
+			q.mw().Timeout()
+			return nil, ErrTimeout
+		case ctxInt:
+			fallthrough
+		default:
+			q.mw().Interrupt()
+			return nil, ErrInterrupt
+		}
 	}
 }
 
-// FetchDeadline add single request to current batch using given deadline.
-func (q *BatchQuery) FetchDeadline(key any, deadline time.Time) (any, error) {
-	timeout := -time.Since(deadline)
-	return q.FetchTimeout(key, timeout)
-}
-
-func (q *BatchQuery) fetch(key any, c chan tuple) {
+func (q *BatchQuery) fetch_(key any, c chan tuple) {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 	q.buf = append(q.buf, pair{key: key, c: c})

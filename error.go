@@ -9,6 +9,6 @@ var (
 	ErrBadIntervals = errors.New("bad intervals: timeout less that collect")
 	ErrQueryClosed  = errors.New("query closed")
 	ErrNotFound     = errors.New("record not found")
-	ErrInterrupt    = errors.New("batch interrupted")
+	ErrInterrupt    = errors.New("interrupt")
 	ErrTimeout      = errors.New("timeout")
 )
