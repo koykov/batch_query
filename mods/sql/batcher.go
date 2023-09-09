@@ -10,6 +10,14 @@ type Batcher struct {
 	Query string
 }
 
+type QueryFormatter interface {
+	Format(query string, args []any) string
+}
+
+type RecordBuilder interface {
+	Build(args []any) (any, error)
+}
+
 func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
 	query := b.Query // todo: declare and implement QueryFormatter
 	rows, err := b.DB.QueryContext(ctx, query, keys...)
