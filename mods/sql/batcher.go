@@ -6,12 +6,9 @@ import (
 )
 
 type Batcher struct {
-	DB    *sql.DB
-	Query string
-}
-
-type QueryFormatter interface {
-	Format(query string, args []any) string
+	DB             *sql.DB
+	Query          string
+	QueryFormatter QueryFormatter
 }
 
 type RecordBuilder interface {
@@ -19,7 +16,10 @@ type RecordBuilder interface {
 }
 
 func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
-	query := b.Query // todo: declare and implement QueryFormatter
+	query, err := b.QueryFormatter.Format(b.Query, keys)
+	if err != nil {
+		return dst, err
+	}
 	rows, err := b.DB.QueryContext(ctx, query, keys...)
 	if err != nil {
 		return dst, err
