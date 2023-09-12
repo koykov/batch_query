@@ -5,10 +5,6 @@ import (
 	"strings"
 )
 
-type QueryFormatter interface {
-	Format(query string, args []any) (string, error)
-}
-
 type PlaceholderType uint8
 
 const (
