@@ -17,6 +17,12 @@ var stages = []struct {
 		PlaceholderMySQL,
 		"select * from users where uid in (?,?,?,?,?,?,?)",
 	},
+	{
+		"select * from users where uid in (::args::)",
+		[]any{1, 2, 3, 4, 5, 6, 7},
+		PlaceholderPgSQL,
+		"select * from users where uid in ($1,$2,$3,$4,$5,$6,$7)",
+	},
 }
 
 func TestQueryFormatter(t *testing.T) {
