@@ -10,6 +10,7 @@ type Batcher struct {
 	Query          string
 	QueryFormatter QueryFormatter
 	RecordScanner  RecordScanner
+	RecordMatcher  RecordMatcher
 }
 
 func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
@@ -24,6 +25,9 @@ func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error
 	}
 	if b.RecordScanner == nil {
 		return dst, ErrNoRecScnr
+	}
+	if b.RecordMatcher == nil {
+		return dst, ErrNoRecMtch
 	}
 
 	query, err := b.QueryFormatter.Format(b.Query, keys)
@@ -48,7 +52,8 @@ func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error
 }
 
 func (b Batcher) MatchKey(key, val any) bool {
-	// todo: implement me
-	_, _ = key, val
-	return false
+	if b.RecordMatcher == nil {
+		return false
+	}
+	return b.RecordMatcher.Match(key, val)
 }
