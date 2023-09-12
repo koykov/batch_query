@@ -9,13 +9,23 @@ type Batcher struct {
 	DB             *sql.DB
 	Query          string
 	QueryFormatter QueryFormatter
-}
-
-type RecordBuilder interface {
-	Build(args []any) (any, error)
+	RecordScanner  RecordScanner
 }
 
 func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
+	if b.DB == nil {
+		return dst, ErrNoDB
+	}
+	if len(b.Query) == 0 {
+		return dst, ErrNoQuery
+	}
+	if b.QueryFormatter == nil {
+		return dst, ErrNoQueryFmt
+	}
+	if b.RecordScanner == nil {
+		return dst, ErrNoRecScnr
+	}
+
 	query, err := b.QueryFormatter.Format(b.Query, keys)
 	if err != nil {
 		return dst, err
@@ -27,10 +37,11 @@ func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error
 	defer func() { _ = rows.Close() }()
 
 	for rows.Next() {
-		// todo: declare and implement Scanner (RecordBuilder?)
-		// if err = rows.Scan(); err != nil {
-		// 	return dst, err
-		// }
+		rec, err := b.RecordScanner.Scan(rows)
+		if err != nil {
+			return dst, err
+		}
+		dst = append(dst, rec)
 	}
 
 	return dst, nil
