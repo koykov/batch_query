@@ -5,21 +5,14 @@ import (
 	"strings"
 )
 
-type PlaceholderType uint8
+const defaultMacros = "::args::"
 
-const (
-	PlaceholderMySQL PlaceholderType = iota
-	PlaceholderPgSQL
-)
-
-const QuerySubstring = "::args::"
-
-type SubstringQueryFormatter struct {
-	QuerySubstring  string
+type MacrosQueryFormatter struct {
+	QueryMacros     string
 	PlaceholderType PlaceholderType
 }
 
-func (qf SubstringQueryFormatter) Format(query string, args []any) (string, error) {
+func (qf MacrosQueryFormatter) Format(query string, args []any) (string, error) {
 	buf := make([]byte, 0, len(args)*5)
 	for i := 0; i < len(args); i++ {
 		if i > 0 {
@@ -35,5 +28,5 @@ func (qf SubstringQueryFormatter) Format(query string, args []any) (string, erro
 			return "", ErrUnknownPlaceholderType
 		}
 	}
-	return strings.Replace(query, QuerySubstring, string(buf), 1), nil
+	return strings.Replace(query, defaultMacros, string(buf), 1), nil
 }

@@ -25,10 +25,10 @@ var stages = []struct {
 	},
 }
 
-func TestQueryFormatter(t *testing.T) {
+func TestMacrosQueryFormatter(t *testing.T) {
 	for i, stage := range stages {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			qf := SubstringQueryFormatter{PlaceholderType: stage.pt}
+			qf := MacrosQueryFormatter{PlaceholderType: stage.pt}
 			query, _ := qf.Format(stage.query, stage.keys)
 			if query != stage.expect {
 				t.FailNow()
@@ -37,12 +37,12 @@ func TestQueryFormatter(t *testing.T) {
 	}
 }
 
-func BenchmarkQueryFormatter(b *testing.B) {
+func BenchmarkMacrosQueryFormatter(b *testing.B) {
 	for i, stage := range stages {
 		b.Run(strconv.Itoa(i), func(b *testing.B) {
 			b.ReportAllocs()
 			for j := 0; j < b.N; j++ {
-				qf := SubstringQueryFormatter{PlaceholderType: stage.pt}
+				qf := MacrosQueryFormatter{PlaceholderType: stage.pt}
 				query, _ := qf.Format(stage.query, stage.keys)
 				if query != stage.expect {
 					b.FailNow()
