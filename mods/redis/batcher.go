@@ -8,23 +8,15 @@ import (
 )
 
 type Batcher struct {
-	Client     *redis.Client
-	KeysBuffer bool
+	Client *redis.Client
 }
 
-func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
+func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) {
 	if b.Client == nil {
 		return dst, ErrNoClient
 	}
 
-	var skeys []string
-	if b.KeysBuffer {
-		skeys = kpool.Get().([]string)
-		defer kpool.Put(skeys)
-	} else {
-		skeys = make([]string, 0, len(keys))
-	}
-
+	skeys := make([]string, 0, len(keys))
 	for i := 0; i < len(keys); i++ {
 		switch x := keys[i].(type) {
 		case string:
