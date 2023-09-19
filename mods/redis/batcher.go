@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-redis/redis"
+	"github.com/koykov/fastconv"
 )
 
 type Batcher struct {
@@ -11,13 +12,45 @@ type Batcher struct {
 }
 
 func (b Batcher) Batch(dst []any, keys []any, ctx context.Context) ([]any, error) {
-	_, _ = keys, ctx
-	// todo implement me
+	if b.Client == nil {
+		return dst, ErrNoClient
+	}
+	skeys := make([]string, 0, len(keys))
+	for i := 0; i < len(keys); i++ {
+		switch x := keys[i].(type) {
+		case string:
+			skeys = append(skeys, x)
+		case []byte:
+			skeys = append(skeys, fastconv.B2S(x))
+		}
+	}
+	vals, err := b.Client.MGet(skeys...).Result()
+	if err != nil {
+		return dst, err
+	}
+	for i := 0; i < len(vals); i++ {
+		dst = append(dst, Tuple{
+			Key:   skeys[i],
+			Value: vals[i],
+		})
+	}
 	return dst, nil
 }
 
 func (b Batcher) MatchKey(key, val any) bool {
-	_, _ = key, val
-	// todo implement me
+	var skey string
+	switch x := key.(type) {
+	case string:
+		skey = x
+	case []byte:
+		skey = fastconv.B2S(x)
+	}
+
+	switch x := val.(type) {
+	case Tuple:
+		return skey == x.Key
+	case *Tuple:
+		return skey == x.Key
+	}
 	return false
 }
