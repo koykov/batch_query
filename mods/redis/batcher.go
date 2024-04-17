@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/go-redis/redis"
-	"github.com/koykov/fastconv"
+	"github.com/koykov/byteconv"
 )
 
 type Batcher struct {
@@ -22,7 +22,7 @@ func (b Batcher) Batch(dst []any, keys []any, _ context.Context) ([]any, error) 
 		case string:
 			skeys = append(skeys, x)
 		case []byte:
-			skeys = append(skeys, fastconv.B2S(x))
+			skeys = append(skeys, byteconv.B2S(x))
 		}
 	}
 	vals, err := b.Client.MGet(skeys...).Result()
@@ -44,7 +44,7 @@ func (b Batcher) MatchKey(key, val any) bool {
 	case string:
 		skey = x
 	case []byte:
-		skey = fastconv.B2S(x)
+		skey = byteconv.B2S(x)
 	}
 
 	switch x := val.(type) {
