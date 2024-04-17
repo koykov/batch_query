@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/go-redis/redis v6.15.9+incompatible
-	github.com/koykov/fastconv v1.0.2
+	github.com/koykov/byteconv v1.0.0
 )
 
 require (

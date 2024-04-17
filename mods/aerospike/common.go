@@ -13,9 +13,9 @@ func fetch(cln *as.Client, pol *as.BatchPolicy, ns, set string, bins []string, d
 			ask *as.Key
 			err error
 		)
-		switch keys[i].(type) {
+		switch x := keys[i].(type) {
 		case *as.Key:
-			ask = keys[i].(*as.Key)
+			ask = x
 		default:
 			if ask, err = as.NewKey(ns, set, keys[i]); err != nil {
 				return dst, nil
@@ -35,18 +35,18 @@ func fetch(cln *as.Client, pol *as.BatchPolicy, ns, set string, bins []string, d
 
 func matchKey(key, val any, ns, set string) bool {
 	var ask, asv *as.Key
-	switch key.(type) {
+	switch x := key.(type) {
 	case *as.Key:
-		ask = key.(*as.Key)
+		ask = x
 	default:
 		ask, _ = as.NewKey(ns, set, key)
 	}
-	switch val.(type) {
+	switch x := val.(type) {
 	case *as.Key:
-		asv = val.(*as.Key)
+		asv = x
 	case *as.Record:
-		if raw := val.(*as.Record); raw != nil {
-			asv = raw.Key
+		if x != nil {
+			asv = x.Key
 		}
 	default:
 		return false
