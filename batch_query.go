@@ -18,10 +18,6 @@ const (
 	StatusClose
 )
 const (
-	flagTimer = iota
-	flagNoMetrics
-)
-const (
 	ctxInt uint8 = iota
 	ctxTO
 )
@@ -32,7 +28,6 @@ type BatchQuery struct {
 	once   sync.Once
 	config *Config
 	status Status
-	flags  [2]uint32
 
 	mux    sync.Mutex
 	buf    []pair
@@ -81,6 +76,7 @@ func (q *BatchQuery) init() {
 		return
 	}
 	q.timer = newTimer()
+	go q.timer.observe(q)
 
 	if c.Workers == 0 {
 		q.err = ErrNoWorkers
@@ -98,7 +94,6 @@ func (q *BatchQuery) init() {
 
 	if c.MetricsWriter == nil {
 		c.MetricsWriter = DummyMetrics{}
-		atomic.StoreUint32(&q.flags[flagNoMetrics], 1)
 	}
 
 	q.c = make(chan []pair, q.config.Buffer)
@@ -214,7 +209,7 @@ func (q *BatchQuery) fetch(key any, ctx context.Context, ctxt uint8) (any, error
 	q.mw().Fetch()
 	c := make(chan tuple, 1)
 	now := q.now()
-	q.fetch_(key, c)
+	q.fetch1(key, c)
 	select {
 	case rec := <-c:
 		switch {
@@ -240,7 +235,7 @@ func (q *BatchQuery) fetch(key any, ctx context.Context, ctxt uint8) (any, error
 	}
 }
 
-func (q *BatchQuery) fetch_(key any, c chan tuple) {
+func (q *BatchQuery) fetch1(key any, c chan tuple) {
 	q.mux.Lock()
 	defer q.mux.Unlock()
 	q.buf = append(q.buf, pair{key: key, c: c})
@@ -248,9 +243,8 @@ func (q *BatchQuery) fetch_(key any, c chan tuple) {
 		q.flushLF(flushReasonSize)
 		return
 	}
-	if atomic.LoadUint32(&q.flags[flagTimer]) == 0 {
-		atomic.StoreUint32(&q.flags[flagTimer], 1)
-		go q.timer.wait(q)
+	if q.timer.paused() {
+		go q.timer.resume()
 	}
 }
 
@@ -315,9 +309,7 @@ func (q *BatchQuery) l() Logger {
 }
 
 func (q *BatchQuery) now() (t time.Time) {
-	if atomic.LoadUint32(&q.flags[flagNoMetrics]) == 1 {
-		return
-	}
+	// Maybe use clock?
 	t = time.Now()
 	return
 }
