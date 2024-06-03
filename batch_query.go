@@ -248,8 +248,7 @@ func (q *BatchQuery) fetch_(key any, c chan tuple) {
 		q.flushLF(flushReasonSize)
 		return
 	}
-	if atomic.LoadUint32(&q.flags[flagTimer]) == 0 {
-		atomic.StoreUint32(&q.flags[flagTimer], 1)
+	if atomic.CompareAndSwapUint32(&q.flags[flagTimer], 0, 1) {
 		go q.timer.wait(q)
 	}
 }

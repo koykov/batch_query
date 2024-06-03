@@ -44,7 +44,7 @@ func (t *timer) wait(query *BatchQuery) {
 			case timerReset:
 				t.t.Stop()
 				atomic.StoreUint32(&query.flags[flagTimer], 0)
-				break
+				return
 			case timerStop:
 				t.t.Stop()
 				atomic.StoreUint32(&t.s, 1)
@@ -54,6 +54,7 @@ func (t *timer) wait(query *BatchQuery) {
 		case <-t.t.C:
 			t.reach()
 			atomic.StoreUint32(&query.flags[flagTimer], 0)
+			return
 		}
 	}
 }
