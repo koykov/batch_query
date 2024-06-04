@@ -240,6 +240,7 @@ func (q *BatchQuery) fetch1(key any, c chan tuple) {
 	defer q.mux.Unlock()
 	q.buf = append(q.buf, pair{key: key, c: c})
 	if uint64(len(q.buf)) == q.config.BatchSize {
+		q.timer.pause()
 		q.flushLF(flushReasonSize)
 		return
 	}
@@ -254,6 +255,7 @@ func (q *BatchQuery) Close() error {
 		return ErrQueryClosed
 	}
 	q.setStatus(StatusClose)
+	q.timer.stop()
 	q.mux.Lock()
 	defer q.mux.Unlock()
 	q.flushLF(flushReasonForce)
@@ -271,6 +273,7 @@ func (q *BatchQuery) ForceClose() error {
 		return ErrQueryClosed
 	}
 	q.setStatus(StatusClose)
+	q.timer.stop()
 	q.mux.Lock()
 	defer q.mux.Unlock()
 	close(q.c)

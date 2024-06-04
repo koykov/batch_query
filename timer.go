@@ -9,16 +9,16 @@ import (
 type timerSignal uint8
 
 const (
-	timerReach timerSignal = iota
-	timerPause
-	timerResume
-	timerStop
+	timerSignalReach timerSignal = iota
+	timerSignalPause
+	timerSignalResume
+	timerSignalStop
 )
 
 const (
-	timerActive = iota
-	timerPaused
-	timerStopped
+	timerStatusActive = iota
+	timerStatusPaused
+	timerStatusStopped
 )
 
 // Internal timer implementation.
@@ -45,20 +45,21 @@ func (t *timer) observe(query *BatchQuery) {
 				return
 			}
 			switch signal {
-			case timerReach:
-				atomic.StoreUint32(&t.s, timerPaused)
+			case timerSignalReach:
+				atomic.StoreUint32(&t.s, timerStatusPaused)
 				t.t.Stop()
 				query.flush(flushReasonInterval)
-			case timerPause:
-				atomic.StoreUint32(&t.s, timerPaused)
+				break
+			case timerSignalPause:
+				atomic.StoreUint32(&t.s, timerStatusPaused)
 				t.t.Stop()
 				break
-			case timerResume:
-				atomic.StoreUint32(&t.s, timerActive)
+			case timerSignalResume:
+				atomic.StoreUint32(&t.s, timerStatusActive)
 				t.t.Reset(query.config.CollectInterval)
 				break
-			case timerStop:
-				atomic.StoreUint32(&t.s, timerStopped)
+			case timerSignalStop:
+				atomic.StoreUint32(&t.s, timerStatusStopped)
 				t.t.Stop()
 				close(t.c)
 				return
@@ -71,36 +72,45 @@ func (t *timer) observe(query *BatchQuery) {
 
 // Send time reach signal.
 func (t *timer) reach() {
-	if atomic.LoadUint32(&t.s) != timerActive {
+	if atomic.LoadUint32(&t.s) != timerStatusActive {
 		return
 	}
-	t.c <- timerReach
+	t.send(timerSignalReach)
 }
 
 // Send pause signal.
 func (t *timer) pause() {
-	if atomic.LoadUint32(&t.s) != timerActive {
+	if atomic.LoadUint32(&t.s) != timerStatusActive {
 		return
 	}
-	t.c <- timerPause
+	t.send(timerSignalPause)
 }
 
 // Check timer is paused.
 func (t *timer) paused() bool {
-	return atomic.LoadUint32(&t.s) == timerPaused
+	return atomic.LoadUint32(&t.s) == timerStatusPaused
 }
 
 // Send resume signal.
 func (t *timer) resume() {
-	if atomic.CompareAndSwapUint32(&t.s, timerPaused, timerActive) {
-		t.c <- timerResume
+	if atomic.CompareAndSwapUint32(&t.s, timerStatusPaused, timerStatusActive) {
+		t.send(timerSignalResume)
 	}
 }
 
 // Send stop signal.
 func (t *timer) stop() {
-	if atomic.LoadUint32(&t.s) == timerStopped {
+	if atomic.LoadUint32(&t.s) == timerStatusStopped {
 		return
 	}
-	t.c <- timerStop
+	t.send(timerSignalStop)
+}
+
+func (t *timer) send(sig timerSignal) bool {
+	select {
+	case t.c <- sig:
+		return true
+	default:
+		return false
+	}
 }
