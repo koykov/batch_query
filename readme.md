@@ -13,8 +13,11 @@ Check [Prometheus implementation](https://github.com/koykov/metrics_writers/tree
 
 ## Config params
 
-todo ...
+See [source code](config.go)
 
 ## Modules
 
-Currently, supports only [Aerospike](mods/aerospike) module.
+Currently, supports modules:
+* [Aerospike](mods/aerospike)
+* [Redis](mods/redis)
+* [SQL](mods/sql)
