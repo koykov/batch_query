@@ -7,6 +7,7 @@ var (
 	ErrNoWorkers    = errors.New("no workers available")
 	ErrNoBatcher    = errors.New("no batcher provided")
 	ErrBadIntervals = errors.New("bad intervals: timeout less that collect")
+	ErrQueryNil     = errors.New("query not initialized")
 	ErrQueryClosed  = errors.New("query closed")
 	ErrNotFound     = errors.New("record not found")
 	ErrInterrupt    = errors.New("interrupt")

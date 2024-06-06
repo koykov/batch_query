@@ -206,6 +206,8 @@ func (q *BatchQuery) FetchDeadline(key any, deadline time.Time) (any, error) {
 }
 
 func (q *BatchQuery) fetch(key any, ctx context.Context, ctxt uint8) (any, error) {
+	q.once.Do(q.init)
+
 	q.mw().Fetch()
 	c := make(chan tuple, 1)
 	now := q.now()
@@ -251,6 +253,9 @@ func (q *BatchQuery) fetch1(key any, c chan tuple) {
 
 // Close gracefully stops the query.
 func (q *BatchQuery) Close() error {
+	if q.getStatus() == StatusNil {
+		return ErrQueryNil
+	}
 	if q.getStatus() == StatusClose {
 		return ErrQueryClosed
 	}
@@ -269,6 +274,9 @@ func (q *BatchQuery) Close() error {
 
 // ForceClose closes the query and immediately flush all batches.
 func (q *BatchQuery) ForceClose() error {
+	if q.getStatus() == StatusNil {
+		return ErrQueryNil
+	}
 	if q.getStatus() == StatusClose {
 		return ErrQueryClosed
 	}
@@ -318,4 +326,4 @@ func (q *BatchQuery) now() (t time.Time) {
 }
 
 var _ = New
-var _, _ = StatusNil, StatusThrottle
+var _ = StatusThrottle
