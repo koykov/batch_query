@@ -3,7 +3,7 @@ package aerospike
 import (
 	"context"
 
-	as "github.com/aerospike/aerospike-client-go/v7"
+	as "github.com/aerospike/aerospike-client-go"
 )
 
 // Batcher implements Aerospike batcher.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync/atomic"
 
-	as "github.com/aerospike/aerospike-client-go/v7"
+	as "github.com/aerospike/aerospike-client-go"
 )
 
 // MCBatcher implements multi-client Aerospike batcher.

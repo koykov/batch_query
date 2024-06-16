@@ -3,7 +3,7 @@ package aerospike
 import (
 	"context"
 
-	as "github.com/aerospike/aerospike-client-go/v7"
+	as "github.com/aerospike/aerospike-client-go"
 )
 
 func fetch(cln *as.Client, pol *as.BatchPolicy, ns, set string, bins []string, dst []any, keys []any, _ context.Context) ([]any, error) {
