@@ -9,7 +9,7 @@ Example of usage allows in [demo application](https://github.com/koykov/demo/tre
 
 ## Metrics
 
-Check [Prometheus implementation](https://github.com/koykov/betch_query/tree/master/metrics/prometheus) of metrics writer.
+Check [Prometheus implementation](https://github.com/koykov/batch_query/tree/master/metrics/prometheus) of metrics writer.
 
 ## Config params
 
