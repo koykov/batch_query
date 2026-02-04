@@ -6,8 +6,8 @@ github.com/koykov/byteconv v1.0.1 h1:5Yb6++P+HnipDW/V9rHXR7CyS0ZFncspT4isvt65fFA
 github.com/koykov/byteconv v1.0.1/go.mod h1:viZknv/akQJrXOQS3bZu2U7TE+gjA03LFQpSsRExZR4=
 github.com/koykov/indirect v1.0.1 h1:1veVipIWBeklFHMvzuwhL82X5eDaJzN+hPeVGRvu22Y=
 github.com/koykov/indirect v1.0.1/go.mod h1:2qWC0hrIHIexlKaqPA0VWEa0s2V/qxxNJv7XPncnh2I=
-github.com/koykov/vmchain v0.0.0-20260203213359-c4b050bd4de6 h1:NEB7ycQrV1mutusclDvK4TwDiYRe/MwYW/gwKdncSds=
-github.com/koykov/vmchain v0.0.0-20260203213359-c4b050bd4de6/go.mod h1:Ey4rbJOs7KL1/P0TIxyFStu3mL92m5sQxe82T81w5ow=
+github.com/koykov/vmchain v0.0.0-20260204180602-f6e563b61cba h1:ydjbpGd7/TbDPGstXxJrwUbAFErOvTz9qqLX/09gbKM=
+github.com/koykov/vmchain v0.0.0-20260204180602-f6e563b61cba/go.mod h1:Ey4rbJOs7KL1/P0TIxyFStu3mL92m5sQxe82T81w5ow=
 github.com/koykov/x2bytes v1.0.4 h1:aRTi/QHz3BbiIfW+BIKW7V8EmdIV1g3kwLjTHTJz6Xg=
 github.com/koykov/x2bytes v1.0.4/go.mod h1:0fbvyQAm3RAiTOE/NT0Dg3ZXL9EQiYpyrp5wZyoz11Q=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
