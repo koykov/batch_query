@@ -25,19 +25,18 @@ type Writer struct {
 	prec time.Duration
 }
 
-func NewWriter(name string) *Writer {
-	return NewWriterWithPrecision(name, time.Nanosecond)
-}
-
-func NewWriterWithPrecision(name string, precision time.Duration) *Writer {
-	if precision == 0 {
-		precision = time.Nanosecond
-	}
-	m := &Writer{
+func NewWriter(name string, options ...Option) *Writer {
+	w := &Writer{
 		name: name,
-		prec: precision,
+		prec: time.Nanosecond,
 	}
-	return m
+	for _, fn := range options {
+		fn(w)
+	}
+	if w.prec <= 0 {
+		w.prec = time.Nanosecond
+	}
+	return w
 }
 
 func (m Writer) Fetch() {
