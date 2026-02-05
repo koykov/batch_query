@@ -102,11 +102,13 @@ func (m writer) BatchFail() {
 
 func (m writer) BufferIn(reason string) {
 	vmchain.Gauge("batch_query_size", nil).WithLabel("query", m.name).WithLabel("entity", buffer).Inc()
-	vmchain.Counter("batch_query_bufio").WithLabel("query", m.name).WithLabel("reason", reason).Inc()
+	vmchain.Gauge("batch_query_flush", nil).WithLabel("query", m.name).WithLabel("reason", reason).Inc()
+	vmchain.Counter("batch_query_bufio").WithLabel("query", m.name).Inc()
 }
 
 func (m writer) BufferOut() {
 	vmchain.Gauge("batch_query_size", nil).WithLabel("query", m.name).WithLabel("entity", buffer).Dec()
+	vmchain.Counter("batch_query_bufio").WithLabel("query", m.name).Inc()
 }
 
 var _ = NewWriter

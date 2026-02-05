@@ -2,7 +2,7 @@ module github.com/koykov/batch_query/metrics/victoria
 
 go 1.22
 
-require github.com/koykov/vmchain v0.0.0-20260205091615-3b84cbde2eac
+require github.com/koykov/vmchain v0.0.0-20260205195754-e81ed8b56aca
 
 require (
 	github.com/VictoriaMetrics/metrics v1.40.2 // indirect
