@@ -3,7 +3,7 @@ package batch_query
 import "time"
 
 // MetricsWriter is an interface of query metrics handler.
-// See example of implementations https://github.com/koykov/metrics_writers/tree/master/batch_query.
+// See example of implementations metrics subfolder.
 type MetricsWriter interface {
 	// Fetch registers income single request.
 	Fetch()
