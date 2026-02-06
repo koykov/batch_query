@@ -19,34 +19,58 @@ const (
 	ioFail = "fail"
 )
 
-// PrometheusMetrics is a Prometheus implementation of batch_query.MetricsWriter.
-type PrometheusMetrics struct {
+type Writer interface {
+	Fetch()
+	OK(duration time.Duration)
+	NotFound()
+	Timeout()
+	Interrupt()
+	Fail()
+	Batch()
+	BatchOK(duration time.Duration)
+	BatchFail()
+	BufferIn(reason string)
+	BufferOut()
+}
+
+// writer is a Prometheus implementation of batch_query.MetricsWriter.
+type writer struct {
 	name string
 	prec time.Duration
 }
 
 var (
 	promSize   *prometheus.GaugeVec
+	promFlush  *prometheus.GaugeVec
 	promIO     *prometheus.CounterVec
 	promBufIO  *prometheus.CounterVec
 	promTiming *prometheus.HistogramVec
-
-	_ = NewPrometheusMetrics
 )
 
-func NewPrometheusMetrics(name string) *PrometheusMetrics {
-	return NewPrometheusMetricsWP(name, time.Nanosecond)
+func NewWriter(name string, options ...Option) Writer {
+	w := &writer{
+		name: name,
+		prec: time.Nanosecond,
+	}
+	for _, fn := range options {
+		fn(w)
+	}
+	if w.prec <= 0 {
+		w.prec = time.Nanosecond
+	}
+	return w
 }
 
-func NewPrometheusMetricsWP(name string, precision time.Duration) *PrometheusMetrics {
-	if precision == 0 {
-		precision = time.Nanosecond
-	}
-	m := &PrometheusMetrics{
-		name: name,
-		prec: precision,
-	}
-	return m
+// NewPrometheusMetrics makes new instance of Writer.
+// Deprecated: use NewWriter instead.
+func NewPrometheusMetrics(name string) Writer {
+	return NewWriter(name, WithPrecision(time.Nanosecond))
+}
+
+// NewPrometheusMetricsWP makes new instance of Writer with given precision.
+// Deprecated: use NewWriter instead.
+func NewPrometheusMetricsWP(name string, precision time.Duration) Writer {
+	return NewWriter(name, WithPrecision(precision))
 }
 
 func init() {
@@ -61,6 +85,10 @@ func init() {
 	promBufIO = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "batch_query_bufio",
 		Help: "Buffer operations.",
+	}, []string{"query"})
+	promFlush = prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "batch_query_flush",
+		Help: "Indicates flush events distribution by reason.",
 	}, []string{"query", "reason"})
 
 	buckets := append(prometheus.DefBuckets, []float64{15, 20, 30, 40, 50, 100, 150, 200, 250, 500, 1000, 1500, 2000, 3000, 5000}...)
@@ -70,61 +98,63 @@ func init() {
 		Buckets: buckets,
 	}, []string{"query", "entity"})
 
-	prometheus.MustRegister(promSize, promIO, promBufIO, promTiming)
+	prometheus.MustRegister(promSize, promFlush, promIO, promBufIO, promTiming)
 }
 
-func (m PrometheusMetrics) Fetch() {
+func (m writer) Fetch() {
 	promSize.WithLabelValues(m.name, single).Inc()
 	promIO.WithLabelValues(m.name, single, ioIn).Inc()
 }
 
-func (m PrometheusMetrics) OK(dur time.Duration) {
+func (m writer) OK(dur time.Duration) {
 	promSize.WithLabelValues(m.name, single).Dec()
 	promIO.WithLabelValues(m.name, single, ioOK).Inc()
 	promTiming.WithLabelValues(m.name, single).Observe(float64(dur / m.prec))
 }
 
-func (m PrometheusMetrics) NotFound() {
+func (m writer) NotFound() {
 	promSize.WithLabelValues(m.name, single).Dec()
 	promIO.WithLabelValues(m.name, single, io404).Inc()
 }
 
-func (m PrometheusMetrics) Timeout() {
+func (m writer) Timeout() {
 	promSize.WithLabelValues(m.name, single).Dec()
 	promIO.WithLabelValues(m.name, single, ioTO).Inc()
 }
 
-func (m PrometheusMetrics) Interrupt() {
+func (m writer) Interrupt() {
 	promSize.WithLabelValues(m.name, single).Dec()
 	promIO.WithLabelValues(m.name, single, ioInt).Inc()
 }
 
-func (m PrometheusMetrics) Fail() {
+func (m writer) Fail() {
 	promSize.WithLabelValues(m.name, single).Dec()
 	promIO.WithLabelValues(m.name, single, ioFail).Inc()
 }
 
-func (m PrometheusMetrics) Batch() {
+func (m writer) Batch() {
 	promSize.WithLabelValues(m.name, batch).Inc()
 	promIO.WithLabelValues(m.name, batch, ioIn).Inc()
 }
 
-func (m PrometheusMetrics) BatchOK(dur time.Duration) {
+func (m writer) BatchOK(dur time.Duration) {
 	promSize.WithLabelValues(m.name, batch).Dec()
 	promIO.WithLabelValues(m.name, batch, ioOK).Inc()
 	promTiming.WithLabelValues(m.name, batch).Observe(float64(dur / m.prec))
 }
 
-func (m PrometheusMetrics) BatchFail() {
+func (m writer) BatchFail() {
 	promSize.WithLabelValues(m.name, batch).Dec()
 	promIO.WithLabelValues(m.name, batch, ioFail).Inc()
 }
 
-func (m PrometheusMetrics) BufferIn(reason string) {
+func (m writer) BufferIn(reason string) {
 	promSize.WithLabelValues(m.name, buffer).Inc()
-	promBufIO.WithLabelValues(m.name, reason).Inc()
+	promFlush.WithLabelValues(m.name, reason)
+	promBufIO.WithLabelValues(m.name).Inc()
 }
 
-func (m PrometheusMetrics) BufferOut() {
+func (m writer) BufferOut() {
 	promSize.WithLabelValues(m.name, buffer).Dec()
+	promBufIO.WithLabelValues(m.name).Add(-1)
 }
