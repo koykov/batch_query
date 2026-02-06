@@ -9,7 +9,11 @@ Example of usage allows in [demo application](https://github.com/koykov/demo/tre
 
 ## Metrics
 
-Check [Prometheus implementation](https://github.com/koykov/batch_query/tree/master/metrics/prometheus) of metrics writer.
+Currently, package contains two built-in implementations of [MetricsWriter](metrics.go):
+* [Prometheus implementation](https://github.com/koykov/batch_query/tree/master/metrics/prometheus)
+* [VictoriaMetrics](https://github.com/koykov/batch_query/tree/master/metrics/victoria)
+
+Feel free to implement your own implementation.
 
 ## Config params
 
