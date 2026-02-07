@@ -24,3 +24,56 @@
 * `Workers` - количество воркеров для отправки/обработки батчей. Читают из буфера (см. `Buffer`).
 * `MetricsWriter` - абстракция для конкретного TSDB решения.
 * `Logger` - абстракция для логгера внутренних процессов. Полезно для отладки, не рекомендуется для продакшена.
+
+Таким образом, пример использования выглядит следующим образом:
+```go
+package main
+
+import (
+	"log"
+	"math/rand"
+	"os"
+	"time"
+
+	as "github.com/aerospike/aerospike-client-go"
+	"github.com/koykov/batch_query"
+	promw "github.com/koykov/batch_query/metrics/prometheus"
+	"github.com/koykov/batch_query/mods/aerospike"
+)
+
+func main() {
+	policy := as.NewBatchPolicy()
+	client, _ := as.NewClientWithPolicy(as.NewClientPolicy(), "localhost", 3000)
+
+	cfg := batch_query.Config{
+		BatchSize:       100,
+		CollectInterval: 500 * time.Microsecond,
+		TimeoutInterval: 5 * time.Millisecond,
+		Workers:         10,
+		Buffer:          4,
+		Batcher: aerospike.Batcher{
+			Namespace: "my_ns",
+			SetName:   "my_set",
+			Bins:      nil, // keep nil to grab all existing bins
+			Policy:    policy,
+			Client:    client,
+		},
+		MetricsWriter: promw.NewWriter("my_query", promw.WithPrecision(time.Millisecond)),
+		Logger:        log.New(os.Stderr, "", log.LstdFlags),
+	}
+	bq, _ := batch_query.New(&cfg)
+
+	for i := 0; i < 10000; i++ {
+		go func() {
+			for {
+				resp, _ := bq.Fetch(i + rand.Intn(i))
+				_ = resp.(*as.Record)
+			}
+		}()
+	}
+
+	c := make(chan struct{})
+	<-c
+}
+
+```
