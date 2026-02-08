@@ -45,24 +45,30 @@ func main() {
 	policy := as.NewBatchPolicy()
 	client, _ := as.NewClientWithPolicy(as.NewClientPolicy(), "localhost", 3000)
 
-	cfg := batch_query.Config{
+	// Prepare config for query.
+	conf := batch_query.Config{
 		BatchSize:       100,
 		CollectInterval: 500 * time.Microsecond,
 		TimeoutInterval: 5 * time.Millisecond,
 		Workers:         10,
 		Buffer:          4,
+		// Declare Aerospike batcher with specific params.
 		Batcher: aerospike.Batcher{
 			Namespace: "my_ns",
 			SetName:   "my_set",
-			Bins:      nil, // keep nil to grab all existing bins
+			Bins:      []string{"bin01", "bin02", "binNN"},
 			Policy:    policy,
 			Client:    client,
 		},
+		// Declare writer to export metrics.
 		MetricsWriter: promw.NewWriter("my_query", promw.WithPrecision(time.Millisecond)),
-		Logger:        log.New(os.Stderr, "", log.LstdFlags),
+		// Declare logger for debugging purposes.
+		Logger: log.New(os.Stderr, "", log.LstdFlags),
 	}
-	bq, _ := batch_query.New(&cfg)
+	// Initialize the query.
+	bq, _ := batch_query.New(&conf)
 
+	// Start 10k goroutines to fetch small keys.
 	for i := 0; i < 10000; i++ {
 		go func() {
 			for {
@@ -75,5 +81,6 @@ func main() {
 	c := make(chan struct{})
 	<-c
 }
-
 ```
+В этом примере 10k горутин читает одиночные ключи, которые силами query будут объединены в батчи и обработаны пакетно.
+При этом каждая горутина получит ответ именно на свой ключ, который она запрашивала или ошибку.
